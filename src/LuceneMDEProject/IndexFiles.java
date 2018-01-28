@@ -212,7 +212,6 @@ public class IndexFiles {
 		try {
 			search.searchByField(artifact, indexPath);
 		} catch (IOException | ParseException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		Date endSearch = new Date();
