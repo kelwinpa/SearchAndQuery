@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.8"/>
+	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="lib" path="C:/Users/Kelwin/Desktop/MDE2017/jars/lucene-analyzers-common-7.2.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Kelwin/Desktop/MDE2017/jars/lucene-core-7.2.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Kelwin/Desktop/MDE2017/jars/lucene-demo-7.2.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Kelwin/Desktop/MDE2017/jars/lucene-queryparser-7.2.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Kelwin/Downloads/org.eclipse.emf.common-2.12.0.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Kelwin/Downloads/commons-io-1.3.2.jar"/>
+	<classpathentry kind="lib" path="C:/Users/Kelwin/Downloads/guava-23.5-jre.jar"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
