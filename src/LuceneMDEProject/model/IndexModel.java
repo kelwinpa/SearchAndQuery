@@ -88,7 +88,7 @@ public class IndexModel {
 		Field pathField = new TextField(LuceneServiceImp.PATH_TAG, model.toString(), Field.Store.YES);
 		doc.add(pathField);
 
-		Field artifactType = new TextField(LuceneServiceImp.TYPE_TAG, model.getClass().getSimpleName(), Field.Store.YES);
+		Field artifactType = new TextField(LuceneServiceImp.TYPE_TAG, LuceneServiceImp.MODEL_TYPE, Field.Store.YES);
 		doc.add(artifactType);
 
 		FilenameUtils.getExtension(model.getName());

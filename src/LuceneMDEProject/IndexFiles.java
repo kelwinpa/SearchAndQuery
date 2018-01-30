@@ -1,12 +1,12 @@
 package LuceneMDEProject;
 
-import java.io.BufferedReader;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -27,10 +27,11 @@ import LuceneMDEProject.search.Search;
 
 public class IndexFiles {
 
-	private static final String METAMODEL = "/Families.ecore";
-	private static final String MODEL = "/Families.xmi";
-	//private static final String METAMODEL2 = "/Persons.ecore";
-	//private static final String MODEL2 = "/Persons.xmi";
+	//private static final String METAMODEL = "/Families.ecore";
+	// private static final String METAMODEL = "/ATL.ecore";
+	//private static final String MODEL = "/Families.xmi";
+	private static final String METAMODEL = "/Persons.ecore";
+	private static final String MODEL = "/Persons.xmi";
 	private static final String ATL = "/Families2Persons.atl";
 
 	// upload both ecore and both model and index them.
@@ -133,10 +134,10 @@ public class IndexFiles {
 		System.out.println(end.getTime() - start.getTime() + " total milliseconds\n");
 
 		// Create index Model
-		
+
 		Date startModel = new Date();
 		System.out.println("Indexing Model to directory '" + idxModel + "'...");
-		Document modelArtifact = new Document(); 
+		Document modelArtifact = new Document();
 		try {
 			IndexModel indexModel = new IndexModel();
 			modelArtifact = indexModel.createModelIndex(modelDir, idxModel, create, metamodel, MODEL);
@@ -149,7 +150,7 @@ public class IndexFiles {
 
 		// Create index for Atl Transforation
 		Date startATL = new Date();
-		Document transArtifact = new Document(); 
+		Document transArtifact = new Document();
 		System.out.println("Indexing ATL Transformation Model to directory '" + idxAtl + "'...");
 		try {
 			AtlTransformation atlTransformation = new AtlTransformation();
@@ -160,63 +161,27 @@ public class IndexFiles {
 			System.out.println(" caught a " + e.getClass() + "\n with message: " + e.getMessage());
 		}
 
-		Document artifact = new Document();
-		String indexPath = null;
-		BufferedReader reader = new BufferedReader(new InputStreamReader(System.in));
-		while (true) {
-			System.out.println("----Search----");
-			System.out.println("1. Metamodel");
-			System.out.println("2. Model");
-	   		System.out.println("3. AtlTransformation");
-	   		System.out.println("\nWhich Artifact do you want to query: ");
-			String input = null;
-			try {
-				input = reader.readLine();
-			} catch (IOException e) {
-				e.printStackTrace();
-			}
-			
-			if (input == null || input.length() == -1) {
-				System.out.println("\nValue not readible");
-				continue;
-			}
+		// Search
+		List<Document> artifactList = new ArrayList<>();
+		artifactList.add(metamodelArtifact);
+		artifactList.add(modelArtifact);
+		artifactList.add(transArtifact);
 
-			input = input.trim();
-			if (input.length() == 0) {
-				System.out.println("\nSpace is not acceptable");
-				continue;
-			}
-					
-			if(input.equals("1")){
-				artifact = metamodelArtifact;
-				indexPath = idxMm;
-			}else if(input.equals("2")){
-				artifact = modelArtifact;
-				indexPath = idxModel;
-			}else if (input.equals("3")){
-				artifact = transArtifact;
-				indexPath = idxAtl;
-			}else{
-				continue;
-			}
-			
-			if(artifact != null){
-				break;
-			}
-		}
+		List<String> indexPathList = new ArrayList<>();
+		indexPathList.add(idxMm);
+		indexPathList.add(idxModel);
+		indexPathList.add(idxAtl);
 
-		// Create index for Atl Transforation
 		Date startSearch = new Date();
 		Search search = new Search();
 		System.out.println("Search in directory...");
 		try {
-			search.searchByField(artifact, indexPath);
-		} catch (IOException | ParseException e) {
-			e.printStackTrace();
+			search.searchIndex(artifactList, indexPathList);
+		} catch (IOException | ParseException e1) {
+			e1.printStackTrace();
 		}
 		Date endSearch = new Date();
 		System.out.println(endSearch.getTime() - startSearch.getTime() + " total milliseconds\n");
-
 	}
 
 }

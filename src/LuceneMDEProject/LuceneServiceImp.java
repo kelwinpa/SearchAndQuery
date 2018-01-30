@@ -8,6 +8,10 @@ public class LuceneServiceImp {
 	public static final String AUTHOR_TAG = "author";
 	public static final String PATH_TAG = "path";
 	public static final String LAST_UPDATE_TAG = "lastUpdate";
+	
+	public static final String MODEL_TYPE = "model";
+	public static final String METAMODEL_TYPE  = "metamodel";
+	public static final String TRANSFORMATIO_TYPE  = "transformation";
 
 	/*
 	 * ECORE METAMODEL TAGS

@@ -18,6 +18,7 @@ import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EAnnotation;
 import org.eclipse.emf.ecore.EAttribute;
 import org.eclipse.emf.ecore.EClass;
+import org.eclipse.emf.ecore.EClassifier;
 import org.eclipse.emf.ecore.EDataType;
 import org.eclipse.emf.ecore.EEnum;
 import org.eclipse.emf.ecore.EModelElement;
@@ -47,6 +48,9 @@ public class IndexMetamodel {
 
 		Field pathField = new TextField(LuceneServiceImp.PATH_TAG, file.toString(), Field.Store.YES);
 		doc.add(pathField);
+
+		Field artifactType = new TextField(LuceneServiceImp.TYPE_TAG, LuceneServiceImp.METAMODEL_TYPE, Field.Store.YES);
+		doc.add(artifactType);
 
 		ResourceSet resourceSet = new ResourceSetImpl();
 		resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put("ecore",
@@ -90,7 +94,7 @@ public class IndexMetamodel {
 			}
 		}
 
-		if (!listnsUri.isEmpty()) {
+		if (listnsUri != null && listnsUri.size() == 1) {
 			// TODO How to extract metamodel nsFrom file
 
 			for (String nsUri : listnsUri) {
@@ -111,6 +115,28 @@ public class IndexMetamodel {
 					Field.Store.YES);
 			doc.add(EPackageNsURIField);
 		}
+
+		// GET EAnnotation
+		EList<EClassifier> eClassifiers = ePackage.getEClassifiers();
+		if (eClassifiers != null && !eClassifiers.isEmpty()) {
+
+			for (EClassifier eClassifier : eClassifiers) {
+				
+				if (eClassifier instanceof EClass) {
+					EClass eClass = (EClass) eClassifier;
+					doc = eClassIndex(eClass, doc);
+				} else if(eClassifier instanceof EDataType) { 
+					//PrimitiveTypes
+					EDataType eDataType = (EDataType) eClassifier;
+					doc = eDataTypeIndex(eDataType, doc);
+				}
+				
+				
+				
+			}
+
+		}
+
 		// GET EAnnotation
 		EList<EAnnotation> annotations = ePackage.getEAnnotations();
 		if (annotations != null && !annotations.isEmpty()) {
@@ -136,7 +162,16 @@ public class IndexMetamodel {
 				Field eClassAttributeField = new TextField(LuceneServiceImp.EATTRIBUTE_INDEX_CODE, attribute.getName(),
 						Field.Store.YES);
 				doc.add(eClassAttributeField);
+
+				if (attribute.getEType() != null) {
+
+					if (attribute.getEType() instanceof EDataType) {
+						EDataType eDataType = (EDataType) attribute.getEType();
+						doc = eDataTypeIndex(eDataType, doc);
+					}
+				}
 			}
+
 			// Index EClass References
 			for (EReference reference : eClass.getEReferences()) {
 				Field eClassReferenceField = new TextField(LuceneServiceImp.EREFERENCE_INDEX_CODE, reference.getName(),
@@ -145,7 +180,7 @@ public class IndexMetamodel {
 			}
 
 		} catch (Exception e) {
-			System.err.println("ERROR: "+e.getMessage());
+			System.err.println("ERROR: " + e.getMessage());
 		}
 
 		return doc;
