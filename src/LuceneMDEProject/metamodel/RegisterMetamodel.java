@@ -1,7 +1,5 @@
 package LuceneMDEProject.metamodel;
 
-import java.nio.file.Path;
-
 import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.EObject;
 import org.eclipse.emf.ecore.EPackage;
@@ -19,9 +17,7 @@ public class RegisterMetamodel {
 		super();
 	}
 
-	public Resource registerMetamodel(Path file, String METAMODEL) {
-
-		URI fileURI = URI.createFileURI(file.toAbsolutePath().toString() + METAMODEL);
+	public Resource registerMetamodel(URI fileURI) {
 
 		Resource.Factory.Registry.INSTANCE.getExtensionToFactoryMap().put("ecore", new EcoreResourceFactoryImpl());
 

@@ -4,9 +4,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Date;
-import java.util.List;
 
 import org.apache.lucene.analysis.Analyzer;
 import org.apache.lucene.analysis.standard.StandardAnalyzer;
@@ -14,24 +12,24 @@ import org.apache.lucene.document.Document;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.IndexWriterConfig.OpenMode;
-import org.apache.lucene.queryparser.classic.ParseException;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
+import org.eclipse.emf.common.util.URI;
 import org.eclipse.emf.ecore.resource.Resource;
 
 import LuceneMDEProject.atlTransformation.AtlTransformation;
 import LuceneMDEProject.metamodel.IndexMetamodel;
 import LuceneMDEProject.metamodel.RegisterMetamodel;
 import LuceneMDEProject.model.IndexModel;
-import LuceneMDEProject.search.Search;
 
 public class IndexFiles {
 
-	//private static final String METAMODEL = "/Families.ecore";
+	private static final String METAMODEL = "/Families.ecore";
 	// private static final String METAMODEL = "/ATL.ecore";
-	//private static final String MODEL = "/Families.xmi";
-	private static final String METAMODEL = "/Persons.ecore";
-	private static final String MODEL = "/Persons.xmi";
+	private static final String MODEL = "/Families4.xmi";
+	// private static final String METAMODEL = "/Persons.ecore";
+	// private static final String MODEL = "/Persons.xmi";
 	private static final String ATL = "/Families2Persons.atl";
 
 	// upload both ecore and both model and index them.
@@ -97,6 +95,7 @@ public class IndexFiles {
 
 		Document metamodelArtifact = new Document();
 		Date start = new Date();
+		URI metamodelURI = URI.createFileURI(mmDir.toAbsolutePath().toString() + METAMODEL);
 		try {
 			System.out.println("Indexing Metamodel to directory '" + idxMm + "'...");
 
@@ -113,9 +112,17 @@ public class IndexFiles {
 			IndexWriter writer = new IndexWriter(dir, iwc);
 
 			IndexMetamodel indexMetamodel = new IndexMetamodel();
-			metamodelArtifact = indexMetamodel.parseArtifactForIndex(mmDir, METAMODEL);
 
-			writer.addDocument(metamodelArtifact);
+			Path metamodel = Paths.get(metamodelURI.toFileString());
+			metamodelArtifact = indexMetamodel.parseArtifactForIndex(metamodel);
+
+			if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
+				System.out.println("adding " + metamodel);
+				writer.addDocument(metamodelArtifact);
+			} else {
+				System.out.println("updating " + metamodel);
+				writer.updateDocument(new Term("path", metamodel.toString()), metamodelArtifact);
+			}
 
 			writer.close();
 
@@ -129,15 +136,15 @@ public class IndexFiles {
 		System.out.println("Registering Metamodel...");
 
 		RegisterMetamodel registerMetamodel = new RegisterMetamodel();
-		Resource metamodel = registerMetamodel.registerMetamodel(mmDir, METAMODEL);
+		Resource metamodel = registerMetamodel.registerMetamodel(metamodelURI);
 		Date end = new Date();
 		System.out.println(end.getTime() - start.getTime() + " total milliseconds\n");
 
 		// Create index Model
-
 		Date startModel = new Date();
 		System.out.println("Indexing Model to directory '" + idxModel + "'...");
 		Document modelArtifact = new Document();
+
 		try {
 			IndexModel indexModel = new IndexModel();
 			modelArtifact = indexModel.createModelIndex(modelDir, idxModel, create, metamodel, MODEL);
@@ -161,27 +168,6 @@ public class IndexFiles {
 			System.out.println(" caught a " + e.getClass() + "\n with message: " + e.getMessage());
 		}
 
-		// Search
-		List<Document> artifactList = new ArrayList<>();
-		artifactList.add(metamodelArtifact);
-		artifactList.add(modelArtifact);
-		artifactList.add(transArtifact);
-
-		List<String> indexPathList = new ArrayList<>();
-		indexPathList.add(idxMm);
-		indexPathList.add(idxModel);
-		indexPathList.add(idxAtl);
-
-		Date startSearch = new Date();
-		Search search = new Search();
-		System.out.println("Search in directory...");
-		try {
-			search.searchIndex(artifactList, indexPathList);
-		} catch (IOException | ParseException e1) {
-			e1.printStackTrace();
-		}
-		Date endSearch = new Date();
-		System.out.println(endSearch.getTime() - startSearch.getTime() + " total milliseconds\n");
 	}
 
 }

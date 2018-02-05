@@ -1,10 +1,12 @@
 package LuceneMDEProject.model;
 
+import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -20,6 +22,7 @@ import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
 import org.apache.lucene.index.IndexWriterConfig.OpenMode;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
 import org.eclipse.emf.common.util.Diagnostic;
@@ -38,9 +41,6 @@ import org.eclipse.emf.ecore.util.Diagnostician;
 import org.eclipse.emf.ecore.util.EcoreEList;
 import org.eclipse.emf.ecore.xmi.impl.XMIResourceFactoryImpl;
 
-import com.google.common.base.Charsets;
-import com.google.common.io.CharStreams;
-
 import LuceneMDEProject.LuceneServiceImp;
 
 public class IndexModel {
@@ -55,6 +55,8 @@ public class IndexModel {
 		Directory dir = FSDirectory.open(Paths.get(idxModel));
 		Analyzer analyzer = new StandardAnalyzer();
 		IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
+		
+		URI modelURI = URI.createFileURI(modelDir.toAbsolutePath().toString() + MODEL);
 
 		if (create) {
 			iwc.setOpenMode(OpenMode.CREATE);
@@ -63,20 +65,28 @@ public class IndexModel {
 		}
 
 		IndexWriter writer = new IndexWriter(dir, iwc);
-
-		Document document = parseArtifactForIndexModel(modelDir, metamodel, MODEL);
-
-		writer.addDocument(document);
-		writer.close();
+		Path model = Paths.get(modelURI.toFileString());
 		
+		Document document = parseArtifactForIndexModel(model, metamodel);
+		
+		 if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
+			 System.out.println("adding " + model);
+			 writer.addDocument(document);
+		 }else{
+			 System.out.println("updating " + model);
+		     writer.updateDocument(new Term("path", model.toString()), document);
+		 }
+		
+		writer.close();
+
 		return document;
 	}
 
-	private Document parseArtifactForIndexModel(Path modelDir, Resource metamodel, String MODEL) throws IOException {
+	private Document parseArtifactForIndexModel(Path modelDir, Resource metamodel) throws IOException {
 
 		Document doc = new Document();
 
-		URI fileURI = URI.createFileURI(modelDir.toAbsolutePath().toString() + MODEL);
+		URI fileURI = URI.createFileURI(modelDir.toAbsolutePath().toString());
 
 		ResourceSet load_resourceSet = new ResourceSetImpl();
 		load_resourceSet.getResourceFactoryRegistry().getExtensionToFactoryMap().put("*", new XMIResourceFactoryImpl());
@@ -94,8 +104,9 @@ public class IndexModel {
 		FilenameUtils.getExtension(model.getName());
 
 		InputStream inputStream = new FileInputStream(model.getAbsolutePath());
-		String text = CharStreams.toString(new InputStreamReader(inputStream, Charsets.UTF_8));
-		Field textField = new TextField(LuceneServiceImp.TEXT_TAG, text, Field.Store.YES);
+
+		Field textField = new TextField(LuceneServiceImp.TEXT_TAG,
+				new BufferedReader(new InputStreamReader(inputStream, StandardCharsets.UTF_8)));
 		doc.add(textField);
 
 		String artifactName = model.getName();
@@ -116,7 +127,8 @@ public class IndexModel {
 		if (emm instanceof EPackageImpl) {
 			EPackageImpl ecoreMM = (EPackageImpl) emm;
 
-			Field conformToFieldName = new TextField(LuceneServiceImp.CONFORM_TO_TAG, ecoreMM.getName(), Field.Store.YES);
+			Field conformToFieldName = new TextField(LuceneServiceImp.CONFORM_TO_TAG, ecoreMM.getName(),
+					Field.Store.YES);
 			doc.add(conformToFieldName);
 
 		}
@@ -145,8 +157,9 @@ public class IndexModel {
 								Field.Store.YES);
 						doc.add(eClassWithAttributeField);
 
-						Field eClassWithAttributeAndAttributeValueField = new TextField(
-								eClass.getName() + LuceneServiceImp.CUSTOM_LUCENE_INDEX_SEPARATOR_CHARACTER + attribute.getName(), attributeValue, Field.Store.YES);
+						Field eClassWithAttributeAndAttributeValueField = new TextField(eClass.getName()
+								+ LuceneServiceImp.CUSTOM_LUCENE_INDEX_SEPARATOR_CHARACTER + attribute.getName(),
+								attributeValue, Field.Store.YES);
 						doc.add(eClassWithAttributeAndAttributeValueField);
 
 					}
@@ -182,10 +195,14 @@ public class IndexModel {
 				for (EAttribute eattribute : value.getEAttributes()) {
 					if (eo.eGet(eattribute) != null) {
 						String key = reference.getName();
+						String key2 = eattribute.getName().toString();
 						String indexValue = eo.eGet(eattribute).toString();
 
 						Field eClassReferenceField = new TextField(key, indexValue, Field.Store.YES);
 						doc.add(eClassReferenceField);
+						
+						Field eClassReferenceField2 = new TextField(key2, indexValue, Field.Store.YES);
+						doc.add(eClassReferenceField2);
 
 					}
 				}

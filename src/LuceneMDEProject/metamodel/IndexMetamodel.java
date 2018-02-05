@@ -1,7 +1,6 @@
 package LuceneMDEProject.metamodel;
 
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Iterator;
@@ -39,12 +38,11 @@ public class IndexMetamodel {
 		super();
 	}
 
-	public Document parseArtifactForIndex(Path file, String METAMODEL) {
+	public Document parseArtifactForIndex(Path file) {
 
 		Document doc = new Document();
 
-		URI fileURI = URI.createFileURI(file.toAbsolutePath().toString() + METAMODEL);
-		file = Paths.get(fileURI.toFileString());
+		URI fileURI = URI.createFileURI(file.toString());
 
 		Field pathField = new TextField(LuceneServiceImp.PATH_TAG, file.toString(), Field.Store.YES);
 		doc.add(pathField);

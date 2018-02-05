@@ -15,6 +15,7 @@ import org.apache.lucene.document.Field;
 import org.apache.lucene.document.TextField;
 import org.apache.lucene.index.IndexWriter;
 import org.apache.lucene.index.IndexWriterConfig;
+import org.apache.lucene.index.Term;
 import org.apache.lucene.index.IndexWriterConfig.OpenMode;
 import org.apache.lucene.store.Directory;
 import org.apache.lucene.store.FSDirectory;
@@ -54,6 +55,8 @@ public class AtlTransformation {
 		Directory dir = FSDirectory.open(Paths.get(idxAtl));
 		Analyzer analyzer = new StandardAnalyzer();
 		IndexWriterConfig iwc = new IndexWriterConfig(analyzer);
+		
+		URI atlURI = URI.createFileURI(atlDir.toAbsolutePath().toString() + ATL);
 
 		if (create) {
 			iwc.setOpenMode(OpenMode.CREATE);
@@ -62,17 +65,24 @@ public class AtlTransformation {
 		}
 
 		IndexWriter writer = new IndexWriter(dir, iwc);
+		Path atl = Paths.get(atlURI.toFileString());
 
-		Document document = parseArtifactForIndexAtl(atlDir, metamodel, ATL);
+		Document document = parseArtifactForIndexAtl(atl, metamodel);
 
-		writer.addDocument(document);
-
+		 if (writer.getConfig().getOpenMode() == OpenMode.CREATE) {
+			 System.out.println("adding " + atl);
+			 writer.addDocument(document);
+		 }else{
+			 System.out.println("updating " + atl);
+		     writer.updateDocument(new Term("path", atl.toString()), document);
+		 }
+		
 		writer.close();
 		
 		return document;
 	}
 
-	private Document parseArtifactForIndexAtl(Path atlDir, Resource metamodel, String ATL) throws IOException {
+	private Document parseArtifactForIndexAtl(Path atlDir, Resource metamodel) throws IOException {
 
 		Document doc = new Document();
 		AtlParser atlParser = new AtlParser();
@@ -82,7 +92,7 @@ public class AtlTransformation {
 		try {
 			atlMetamodel = modelFactory.getBuiltInResource("ATL.ecore");
 
-			URI atlURI = URI.createFileURI(atlDir.toAbsolutePath().toString() + ATL);
+			URI atlURI = URI.createFileURI(atlDir.toAbsolutePath().toString());
 			String atlPath = atlURI.toFileString();
 			Field pathField = new TextField(LuceneServiceImp.PATH_TAG, atlPath, Field.Store.YES);
 			doc.add(pathField);

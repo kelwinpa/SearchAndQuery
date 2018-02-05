@@ -2,7 +2,7 @@ package LuceneMDEProject;
 
 public class LuceneServiceImp {
 
-	public static final String TEXT_TAG = "text";
+	public static final String TEXT_TAG = "contents";
 	public static final String TYPE_TAG = "forgeType";
 	public static final String NAME_TAG = "name";
 	public static final String AUTHOR_TAG = "author";

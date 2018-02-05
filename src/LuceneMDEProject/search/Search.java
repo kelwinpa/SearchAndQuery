@@ -11,6 +11,7 @@ import org.apache.lucene.analysis.standard.StandardAnalyzer;
 import org.apache.lucene.document.Document;
 import org.apache.lucene.index.DirectoryReader;
 import org.apache.lucene.index.IndexReader;
+import org.apache.lucene.queryparser.classic.MultiFieldQueryParser;
 import org.apache.lucene.queryparser.classic.ParseException;
 import org.apache.lucene.queryparser.classic.QueryParser;
 import org.apache.lucene.search.IndexSearcher;
@@ -27,18 +28,17 @@ public class Search {
 		super();
 	}
 
-	public void searchIndex(List<Document> artifactList, List<String> indexPathList)
-			throws IOException, ParseException {
+	public void searchIndex(List<String> indexPathList) throws IOException, ParseException {
 
 		BufferedReader readerLine = new BufferedReader(new InputStreamReader(System.in));
-		String queryString = null;
-		String indexPath = null;
-		int hitsPerPage = 10;
-		boolean raw = false;
-		
 		while (true) {
+
+			String queryString = null;
+			String indexPath = null;
+			int hitsPerPage = 10;
+			boolean raw = false;
 			System.out.println("Query formart [forgeType]:[value] AND [Root].[Node]:[value]");
-			System.out.println("Enter query: ");
+			System.out.println("Enter query or (q) to exit: ");
 			queryString = readerLine.readLine();
 
 			if (queryString == null || queryString.length() == -1) {
@@ -52,61 +52,68 @@ public class Search {
 				continue;
 			}
 
-			if (queryString != null) {
+			if (!queryString.equals("q")) {
+
+				String[] subQueries = null;
+				subQueries = queryString.split("AND");
+				if (subQueries.length == 1) {
+					subQueries = queryString.split("and");
+				}
+				// Only Queries with lenght 2
+				if (subQueries.length == 2) {
+
+					String[] firstSubQuery = subQueries[0].split(":");
+
+					if (firstSubQuery[0].trim().equals(LuceneServiceImp.TYPE_TAG)) {
+						if (firstSubQuery[1].trim().equals(LuceneServiceImp.METAMODEL_TYPE)) {
+							indexPath = indexPathList.get(0);
+						} else if (firstSubQuery[1].trim().equals(LuceneServiceImp.MODEL_TYPE)) {
+							indexPath = indexPathList.get(1);
+						} else if (firstSubQuery[1].trim().equals(LuceneServiceImp.TRANSFORMATIO_TYPE)) {
+							indexPath = indexPathList.get(2);
+						}
+					}
+
+					subQueries[1] = subQueries[1].trim();
+					String[] secondSubQuery = subQueries[1].split(":");
+					String value = secondSubQuery[1].trim();
+					String[] partSecondSubQuery = secondSubQuery[0].split("[.]");
+					String root = partSecondSubQuery[0].trim();
+					String node = partSecondSubQuery[1].trim();
+
+					String queryContent = node + "=\"" + value + "\"";
+
+					IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
+					IndexSearcher searcher = new IndexSearcher(reader);
+					Analyzer analyzer = new StandardAnalyzer();
+
+					// MultiFieldQueryParser queryParser = new
+					// MultiFieldQueryParser(node, analyzer);
+					QueryParser parser = new QueryParser(node, analyzer);
+					Query query = parser.parse(value);
+					System.out.println("Searching for: [" + root + "] with [" + queryContent + "]");
+					// System.out.println("Searching for: " +
+					// query.toString("contents"));
+
+					searcher.search(query, 100);
+
+					doPagingSearch(readerLine, searcher, query, hitsPerPage, raw,
+							indexPath == null && queryString == null);
+
+				}
+
+			} else {
 				break;
 			}
 		}
-
-		String[] subQueries = null;
-		subQueries = queryString.split("AND");
-		if (subQueries.length == 1) {
-			subQueries = queryString.split("and");
-		}
-		// Only Queries with lenght 2
-		if (subQueries.length == 2) {
-
-			String[] firstSubQuery = subQueries[0].split(":");
-
-			if (firstSubQuery[0].trim().equals(LuceneServiceImp.TYPE_TAG)) {
-				if (firstSubQuery[1].trim().equals(LuceneServiceImp.METAMODEL_TYPE)) {
-					indexPath = indexPathList.get(0);
-				} else if (firstSubQuery[1].trim().equals(LuceneServiceImp.MODEL_TYPE)) {
-					indexPath = indexPathList.get(1);
-				} else if (firstSubQuery[1].trim().equals(LuceneServiceImp.TRANSFORMATIO_TYPE)) {
-					indexPath = indexPathList.get(2);
-				}
-			}
-
-			subQueries[1] = subQueries[1].trim();
-			String[] secondSubQuery = subQueries[1].split(":");
-			String value = secondSubQuery[1].trim();
-			String[] partSecondSubQuery = secondSubQuery[0].split("[.]");
-			String root = partSecondSubQuery[0].trim();
-			String node = partSecondSubQuery[1].trim();
-
-			IndexReader reader = DirectoryReader.open(FSDirectory.open(Paths.get(indexPath)));
-			IndexSearcher searcher = new IndexSearcher(reader);
-			Analyzer analyzer = new StandardAnalyzer();
-
-			QueryParser parser = new QueryParser(node, analyzer);
-			Query query = parser.parse(value);
-			System.out.println("Searching for: " + query.toString(node));
-
-			searcher.search(query, 100);
-			
-			doPagingSearch(readerLine, searcher, query, hitsPerPage, raw, indexPath == null && queryString == null);
-			
-			readerLine.close();
-		}
-
+		readerLine.close();
 	}
-	
-	
+
 	public static void doPagingSearch(BufferedReader in, IndexSearcher searcher, Query query, int hitsPerPage,
 			boolean raw, boolean interactive) throws IOException {
 
 		// Collect enough docs to show 5 pages
-		TopDocs results = searcher.search(query, 5 * hitsPerPage);
+		TopDocs results = searcher.search(query, Integer.MAX_VALUE);
 		ScoreDoc[] hits = results.scoreDocs;
 
 		int numTotalHits = (int) results.totalHits;
